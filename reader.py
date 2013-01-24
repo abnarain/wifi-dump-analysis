@@ -88,19 +88,6 @@ for data_f_name in data_fs :
 		parse_err_data_frame(frame,radiotap_len)
 		err_count +=1
 	print err_count 
-	'''
-	mac_address_index= 0
-	print "len count " , len(devices_connected)
-	for idx in xrange(0, len(devices_connected),6):
-		mac_address= devices_connected[mac_address_index:mac_address_index+6]
-		for ik in range ( 0,6):
-			ma=int(list(struct.unpack('B',mac_address[ik]))[0])
-			print '%02X' %ma , ":",
-		print "\n"	
-		mac_address_index +=6			
-
-	sys.exit(2)
-	'''
 print "cOUNT BAD IS ", count_bad
 #The following code block parses the mgmt files 
 mgmt_f_dir= sys.argv[2]
