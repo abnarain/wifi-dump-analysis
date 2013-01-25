@@ -1,6 +1,6 @@
 #Author : Abhinav Narain
 #Date : Jan 10, 2012
-#Purpose : To read the binary files with data from BISmark deployment inside homes 
+#Purpose : TESTING : To read the binary files with data from BISmark deployment inside homes 
 
 import os,sys
 import gzip
@@ -8,9 +8,6 @@ import struct
 
 from  header import *
 from mac_parser import * 
-
-
-
 
 if len(sys.argv) !=4:
 	print len(sys.argv)
