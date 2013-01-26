@@ -135,7 +135,7 @@ for data_f_name in data_fs :
 		print "file is malformed or the order of input folders is wrong "
 		sys.exit(1) 
 
-
+	'''
         #The following code block parses the data file 	
 	val_data_missed= struct.unpack('I',correct_data_frames_missed)
 	val_err_data_missed= struct.unpack('I',err_data_frames_missed)
@@ -148,8 +148,8 @@ for data_f_name in data_fs :
 		offset= 8
 		header = frame[:offset]
 		(version,pad,radiotap_len,present_flag)=struct.unpack('<BBHI',header)
-		parse_radiotap(frame,radiotap_len,present_flag,offset)
-		parse_data_frame(frame,radiotap_len)
+	#	parse_radiotap(frame,radiotap_len,present_flag,offset)
+	#	parse_data_frame(frame,radiotap_len)
 	data_index=0
 	for idx in xrange(0,len(err_data_frames)-DATA_ERR_STRUCT_SIZE,DATA_ERR_STRUCT_SIZE ):	
 		data_index= data_index+DATA_ERR_STRUCT_SIZE
@@ -160,15 +160,13 @@ for data_f_name in data_fs :
 		parse_radiotap(frame,radiotap_len,present_flag,offset)
 		parse_err_data_frame(frame,radiotap_len)
 
-
-        #The following code block parses the mgmt files 
+  #The following code block parses the mgmt files 
 	val_beacon_missed= struct.unpack('I',beacon_mgmt_frames_missed)
 	val_common_missed= struct.unpack('I',common_mgmt_frames_missed)
 	val_err_missed=struct.unpack('I',err_mgmt_frames_missed)
-
-	print "----------done with missed .. now with actual data "
+	'''
+	print "----------done with missed .. now with actual mgmt data "
 	beacon_mgmt_frames=header_and_beacon_mgmt_frames[mgmt_file_header_byte_count+1:]
-	print "looper is ",len(beacon_mgmt_frames)
 	mgmt_index=0
 	for idx in xrange(0,len(beacon_mgmt_frames)-MGMT_BEACON_STRUCT_SIZE ,MGMT_BEACON_STRUCT_SIZE ):		
 		frame=beacon_mgmt_frames[mgmt_index:mgmt_index+MGMT_BEACON_STRUCT_SIZE]
@@ -210,11 +208,11 @@ for data_f_name in data_fs :
 		parse_radiotap(frame,radiotap_len,present_flag,offset)
 		parse_mgmt_err_frame(frame,radiotap_len)
 		mgmt_index= mgmt_index+MGMT_ERR_STRUCT_SIZE
-		
+	'''	
 #The following code block parses the ctrl files 
 	val_ctrl_missed= struct.unpack('I',correct_ctrl_frames_missed)
 	val_err_ctrl_missed= struct.unpack('I',err_ctrl_frames_missed)
-	print "----------done with missed .. now with actual data "
+	print "----------done with missed .. now with actual ctrl data "
 	correct_ctrl_frames=header_and_correct_ctrl_frames[ctrl_file_header_byte_count+1:]
 	ctrl_index=0
 	for idx in xrange(0,len(correct_ctrl_frames)-CTRL_STRUCT_SIZE ,CTRL_STRUCT_SIZE ):	
@@ -242,4 +240,4 @@ for data_f_name in data_fs :
 
 		parse_radiotap(frame,radiotap_len,present_flag,offset)
 		parse_ctrl_err_frame(frame,radiotap_len)
-	 
+	 '''
