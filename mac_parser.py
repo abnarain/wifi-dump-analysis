@@ -45,7 +45,6 @@ def FC_SUBTYPE(fc) :
 def parse_radiotap(frame,radiotap_len,present_flag,offset):
 	if radiotap_len == 58 :
 		frame_element=[]				
-		print "@@"
 		if present_flag & 1<<ieee80211.IEEE80211_RADIOTAP_TSFT :
 			timestamp=list(struct.unpack('<Q',frame[offset:offset+8]))[0]
 			frame_element.append(timestamp)
@@ -92,44 +91,45 @@ def parse_radiotap(frame,radiotap_len,present_flag,offset):
 			#padding 
 			offset += 1
 		if present_flag & 1<<ieee80211.IEEE80211_RADIOTAP_RX_FLAGS :
-			radiotap_rx_flags= int(list(struct.unpack('<H',frame[offset:offset+2]))[0])#26:28
+			radiotap_rx_flags= list(struct.unpack('<H',frame[offset:offset+2]))[0]#26:28
 			if radiotap_rx_flags & flags.IEEE80211_RADIOTAP_F_RX_BADPLCP:
 				print "bad plcp"
 			offset += 2
 		if present_flag & 1<<ieee80211.IEEE80211_RADIOTAP_MCS :
 			#print "mcs offset ",offset			
-			radiotap_mcs=struct.unpack('B',frame[offset])
+			radiotap_mcs=list(struct.unpack('B',frame[offset]))[0]
 			offset += 1 
-			radiotap_short_gi=struct.unpack('B',frame[offset])
+			radiotap_short_gi=list(struct.unpack('B',frame[offset]))[0]
 			#print "short gi offset ",offset
 			offset += 1 
-			radiotap_bw_40=struct.unpack('B',frame[offset])
+			radiotap_bw_40=list(struct.unpack('B',frame[offset]))[0]
 			offset += 1 
 			#print "bw 40 offset ",offset
-		homesaw_oui_1=int(list(struct.unpack('B',frame[offset]))[0])
+#			print "ht rate " , ht_rates[radiotap_mcs][][]
+		homesaw_oui_1=list(struct.unpack('B',frame[offset]))[0]
 		offset +=1 
-		homesaw_oui_2=int(list(struct.unpack('B',frame[offset]))[0])
+		homesaw_oui_2=list(struct.unpack('B',frame[offset]))[0]
 		offset +=1 
-		homesaw_oui_3=int(list(struct.unpack('B',frame[offset]))[0])
+		homesaw_oui_3=list(struct.unpack('B',frame[offset]))[0]
 		offset +=1 
-		homesaw_namespace=int(list(struct.unpack('B',frame[offset]))[0])
+		homesaw_namespace=list(struct.unpack('B',frame[offset]))[0]
 		offset +=1 
 		skip_len=int(list(struct.unpack('>H',frame[offset:offset+2]))[0])
 		offset +=2
 		if present_flag & 1<<ieee80211.IEEE80211_RADIOTAP_PHYERR_COUNT :
-			radiotap_phyerr_count = int(list(struct.unpack('<I',frame[offset:offset+4]))[0])
+			radiotap_phyerr_count = list(struct.unpack('<I',frame[offset:offset+4]))[0]
 			#print " phy count= ",radiotap_phyerr_count
 			offset += 4
 		if present_flag & 1<<ieee80211.IEEE80211_RADIOTAP_CCK_PHYERR_COUNT :
-			radiotap_cck_phyerr_count =  int(list(struct.unpack('<I',frame[offset:offset+4]))[0])
+			radiotap_cck_phyerr_count = list(struct.unpack('<I',frame[offset:offset+4]))[0]
 			#print " cck phy count= ",radiotap_cck_phyerr_count 
 			offset += 4
 		if present_flag & 1<<ieee80211.IEEE80211_RADIOTAP_OFDM_PHYERR_COUNT :
-			radiotap_ofdm_phyerr_count =  int(list(struct.unpack('<I',frame[offset:offset+4]))[0])
+			radiotap_ofdm_phyerr_count = list(struct.unpack('<I',frame[offset:offset+4]))[0]
 			offset += 4
 			#print " ofdm phy count " ,radiotap_ofdm_phyerr_count
 		if present_flag & 1<<ieee80211.IEEE80211_RADIOTAP_RX_QUEUE_TIME :
-			radiotap_rx_queue_time =  int(list(struct.unpack('<I',frame[offset:offset+4]))[0])
+			radiotap_rx_queue_time =  list(struct.unpack('<I',frame[offset:offset+4]))[0]
 			#print "rx queue time " ,radiotap_rx_queue_time 
 			offset +=4
 		if present_flag & 1<<ieee80211.IEEE80211_RADIOTAP_CAPLEN :
@@ -171,9 +171,12 @@ def parse_radiotap(frame,radiotap_len,present_flag,offset):
 			radiotap_rate=struct.unpack('<H',frame[offset:offset+2]) #
 			#print "rate =",radiotap_rate
 			offset +=2
-#txflags IEEE80211_RADIOTAP_F_TX_RTS, IEEE80211_TX_RC_USE_RTS_CTS 
 		if present_flag & 1<<ieee80211.IEEE80211_RADIOTAP_TX_FLAGS :
 			radiotap_tx_flags=list(struct.unpack('<H',frame[offset:offset+2]))[0]
+			if radiotap_tx_flags & flags.IEEE80211_RADIOTAP_F_TX_RTS:
+				print " TX RTS SHIIIIT " 
+			if radiotap_tx_flags & flags.IEEE80211_RADIOTAP_F_TX_RTS:
+				print "TX CTS shhiiiit "
 			offset +=2
 		if present_flag & 1<<ieee80211.IEEE80211_RADIOTAP_DATA_RETRIES :
 			radiotap_data_retries=struct.unpack('B',frame[offset])
@@ -267,10 +270,13 @@ def parse_ctrl_fc(frame_control):
 
 def parse_frame_control(frame_control) :	
 	if FC_TYPE(frame_control)==T_DATA:
+		print "Data"
 		parse_data_fc(frame_control)
 	if FC_TYPE(frame_control)==T_MGMT:
+		print "Mgmt "
 		parse_mgmt_fc(frame_control)
 	if FC_TYPE(frame_control)==T_CTRL :
+		print "ctrl " 
 		parse_ctrl_fc(frame_control)
 	if FC_WEP(frame_control):
 		pass
@@ -291,6 +297,7 @@ def seqctl_frag_number(x) :
 def seqctl_seq_number(x):
 	return 	(((x) & 0xfff0) >> 4 )
 def parse_data_frame(frame,radiotap_len):
+	print "radiotap len =" , radiotap_len
 	offset = radiotap_len
 	pkt_len =list(struct.unpack('>I',frame[offset:offset+4]))[0]-FCS_LEN-radiotap_len
 	offset +=4
@@ -424,7 +431,7 @@ def parse_ctrl_frame(frame,radiotap_len):
 	offset +=6
 	frame_control= list(struct.unpack('>H',frame[offset:offset+2]))[0]
 	offset +=2	
-	parse_frame_control(fram_control)
+	parse_frame_control(frame_control)
 
 
 def parse_ctrl_err_frame(frame,radiotap_len):

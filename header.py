@@ -124,7 +124,7 @@ class flag:
 	 IEEE80211_RADIOTAP_F_TX_NOACK= 0x0008  #don't expect an ack 
 	 IEEE80211_RADIOTAP_F_TX_AGG= 0x10  # don't expect an ack 
 	 IEEE80211_RADIOTAP_F_BADFCS= 0x40  # bad FCS 
-
+	 IEEE80211_RADIOTAP_F_RX_BADPLCP = 0x0002 #bad plcp in rx_flags 
 
 ht_rates = [
 

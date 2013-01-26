@@ -131,11 +131,11 @@ for data_f_name in data_fs :
 		sys.exit(1)
 
 	
-	if (len(ctrl_contents) != 4 or  len(data_contents) != 5 or len(mgmt_contents) !=6) :
+	if (len(ctrl_contents) != 4 or  len(data_contents) != 4 or len(mgmt_contents) !=6) :
+		print "for ctrl " ,len (ctrl_contents) ,"for data", len(data_contents), "for mgmt", len(mgmt_contents) 
 		print "file is malformed or the order of input folders is wrong "
 		sys.exit(1) 
 
-	'''
         #The following code block parses the data file 	
 	val_data_missed= struct.unpack('I',correct_data_frames_missed)
 	val_err_data_missed= struct.unpack('I',err_data_frames_missed)
@@ -148,8 +148,8 @@ for data_f_name in data_fs :
 		offset= 8
 		header = frame[:offset]
 		(version,pad,radiotap_len,present_flag)=struct.unpack('<BBHI',header)
-	#	parse_radiotap(frame,radiotap_len,present_flag,offset)
-	#	parse_data_frame(frame,radiotap_len)
+		parse_radiotap(frame,radiotap_len,present_flag,offset)
+		parse_data_frame(frame,radiotap_len)
 	data_index=0
 	for idx in xrange(0,len(err_data_frames)-DATA_ERR_STRUCT_SIZE,DATA_ERR_STRUCT_SIZE ):	
 		data_index= data_index+DATA_ERR_STRUCT_SIZE
@@ -208,7 +208,8 @@ for data_f_name in data_fs :
 		parse_radiotap(frame,radiotap_len,present_flag,offset)
 		parse_mgmt_err_frame(frame,radiotap_len)
 		mgmt_index= mgmt_index+MGMT_ERR_STRUCT_SIZE
-	'''	
+	'''
+	'''
 #The following code block parses the ctrl files 
 	val_ctrl_missed= struct.unpack('I',correct_ctrl_frames_missed)
 	val_err_ctrl_missed= struct.unpack('I',err_ctrl_frames_missed)
@@ -240,4 +241,4 @@ for data_f_name in data_fs :
 
 		parse_radiotap(frame,radiotap_len,present_flag,offset)
 		parse_ctrl_err_frame(frame,radiotap_len)
-	 '''
+		'''
