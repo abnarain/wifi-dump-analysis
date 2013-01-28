@@ -6,6 +6,7 @@ import os,sys,re
 import gzip
 import struct 
 
+
 from  header import *
 from mac_parser import * 
 
@@ -136,7 +137,11 @@ for data_f_name in data_fs :
 		print "file is malformed or the order of input folders is wrong "
 		sys.exit(1) 
 
-        #The following code block parses the data file 	
+	#initializing the frame header to be filled
+	
+	frame_elem=defaultdict(list)
+	monitor_elem=defaultdict(list)
+  #The following code block parses the data file 	
 	val_data_missed= struct.unpack('I',correct_data_frames_missed)
 	val_err_data_missed= struct.unpack('I',err_data_frames_missed)
 	print "----------done with missed .. now with actual data "
@@ -148,8 +153,8 @@ for data_f_name in data_fs :
 		offset= 8
 		header = frame[:offset]
 		(version,pad,radiotap_len,present_flag)=struct.unpack('<BBHI',header)
-		parse_radiotap(frame,radiotap_len,present_flag,offset)
-		parse_data_frame(frame,radiotap_len)
+		frame_elem=parse_radiotap(frame,radiotap_len,present_flag,offset,monitor_elem,frame_elem)
+		parse_data_frame(frame,radiotap_len,frame_elem)
 	data_index=0
 	for idx in xrange(0,len(err_data_frames)-DATA_ERR_STRUCT_SIZE,DATA_ERR_STRUCT_SIZE ):	
 		data_index= data_index+DATA_ERR_STRUCT_SIZE
@@ -157,7 +162,7 @@ for data_f_name in data_fs :
 		offset= 8
 		header = frame[:offset]
 		(version,pad,radiotap_len,present_flag)=struct.unpack('<BBHI',header)
-		parse_radiotap(frame,radiotap_len,present_flag,offset)
+		frame_elem=parse_radiotap(frame,radiotap_len,present_flag,offset,monitor_elem,frame_elem)
 		parse_err_data_frame(frame,radiotap_len)
 
   #The following code block parses the mgmt files 
@@ -177,7 +182,7 @@ for data_f_name in data_fs :
 			print "the radiotap header is not correct "		
 			sys.exit(1)
 
-		parse_radiotap(frame,radiotap_len,present_flag,offset)
+		parse_radiotap(frame,radiotap_len,present_flag,offset,monitor_elem,frame_elem)
 		parse_mgmt_beacon_frame(frame,radiotap_len)
 		mgmt_index=mgmt_index+MGMT_BEACON_STRUCT_SIZE
 	mgmt_index=0
@@ -190,7 +195,7 @@ for data_f_name in data_fs :
 			print "the radiotap header is not correct "		
 			sys.exit(1)
 
-		parse_radiotap(frame,radiotap_len,present_flag,offset)
+		parse_radiotap(frame,radiotap_len,present_flag,offset,monitor_elem,frame_elem)
 		parse_mgmt_common_frame(frame,radiotap_len)
 		mgmt_index=mgmt_index+MGMT_COMMON_STRUCT_SIZE
 
@@ -205,7 +210,7 @@ for data_f_name in data_fs :
 			print "the radiotap header is not correct "		
 			sys.exit(1)
 
-		parse_radiotap(frame,radiotap_len,present_flag,offset)
+		parse_radiotap(frame,radiotap_len,present_flag,offset,monitor_elem,frame_elem)
 		parse_mgmt_err_frame(frame,radiotap_len)
 		mgmt_index= mgmt_index+MGMT_ERR_STRUCT_SIZE
 	'''
@@ -225,7 +230,7 @@ for data_f_name in data_fs :
 		if not( radiotap_len ==58 or  radiotap_len == 42) :
 			print "the radiotap header is not correct "		
 			sys.exit(1)
-		parse_radiotap(frame,radiotap_len,present_flag,offset)
+		parse_radiotap(frame,radiotap_len,present_flag,offset,monitor_elem,frame_elem)
 		parse_ctrl_frame(frame,radiotap_len)
 
 	ctrl_index=0
@@ -239,6 +244,6 @@ for data_f_name in data_fs :
 	  		print "the radiotap header is not correct "		
 			sys.exit(1)
 
-		parse_radiotap(frame,radiotap_len,present_flag,offset)
+		parse_radiotap(frame,radiotap_len,present_flag,offset,monitor_elem,frame_elem)
 		parse_ctrl_err_frame(frame,radiotap_len)
 		'''
