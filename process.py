@@ -139,8 +139,6 @@ for data_f_name in data_fs :
 
 	#initializing the frame header to be filled
 	
-	frame_elem=defaultdict(list)
-	monitor_elem=defaultdict(list)
   #The following code block parses the data file 	
 	val_data_missed= struct.unpack('I',correct_data_frames_missed)
 	val_err_data_missed= struct.unpack('I',err_data_frames_missed)
@@ -148,28 +146,47 @@ for data_f_name in data_fs :
 	correct_data_frames=header_and_correct_data_frames[data_file_header_byte_count+1:]
 	data_index=0
 	for idx in xrange(0,len(correct_data_frames)-DATA_STRUCT_SIZE ,DATA_STRUCT_SIZE ):	
-		data_index=data_index+DATA_STRUCT_SIZE
 		frame=correct_data_frames[data_index:data_index+DATA_STRUCT_SIZE]
 		offset= 8
 		header = frame[:offset]
+
+                frame_elem=defaultdict(list)
+                monitor_elem=defaultdict(list)
 		(version,pad,radiotap_len,present_flag)=struct.unpack('<BBHI',header)
-		frame_elem=parse_radiotap(frame,radiotap_len,present_flag,offset,monitor_elem,frame_elem)
+		(frame_elem,monitor_elem)=parse_radiotap(frame,radiotap_len,present_flag,offset,monitor_elem,frame_elem)
+                break
+                tsf= 0
+                for key in frame_elem.keys():
+                        tsf=key
+                try :
+                        Monitor[tsf].append[monitor_elem]
+                except:
+                        pass 
 		parse_data_frame(frame,radiotap_len,frame_elem)
+		data_index=data_index+DATA_STRUCT_SIZE
 	data_index=0
 	for idx in xrange(0,len(err_data_frames)-DATA_ERR_STRUCT_SIZE,DATA_ERR_STRUCT_SIZE ):	
-		data_index= data_index+DATA_ERR_STRUCT_SIZE
 		frame=err_data_frames[data_index:data_index+DATA_ERR_STRUCT_SIZE]
 		offset= 8
 		header = frame[:offset]
+                frame_elem=defaultdict(list)
+                monitor_elem=defaultdict(list)
 		(version,pad,radiotap_len,present_flag)=struct.unpack('<BBHI',header)
-		frame_elem=parse_radiotap(frame,radiotap_len,present_flag,offset,monitor_elem,frame_elem)
-		parse_err_data_frame(frame,radiotap_len)
-
+		(frame_elem,monitor_elem)=parse_radiotap(frame,radiotap_len,present_flag,offset,monitor_elem,frame_elem)
+                tsf= 0
+                for key in frame_elem.keys():
+                        tsf=key
+                try :
+                        Monitor[tsf].append[monitor_elem]
+                except:
+                        pass 
+		parse_err_data_frame(frame,radiotap_len,frame_elem)
+		data_index= data_index+DATA_ERR_STRUCT_SIZE
   #The following code block parses the mgmt files 
 	val_beacon_missed= struct.unpack('I',beacon_mgmt_frames_missed)
 	val_common_missed= struct.unpack('I',common_mgmt_frames_missed)
 	val_err_missed=struct.unpack('I',err_mgmt_frames_missed)
-	'''
+	
 	print "----------done with missed .. now with actual mgmt data "
 	beacon_mgmt_frames=header_and_beacon_mgmt_frames[mgmt_file_header_byte_count+1:]
 	mgmt_index=0
@@ -183,7 +200,14 @@ for data_f_name in data_fs :
 			sys.exit(1)
 
 		parse_radiotap(frame,radiotap_len,present_flag,offset,monitor_elem,frame_elem)
-		parse_mgmt_beacon_frame(frame,radiotap_len)
+		tsf= 0
+		for key in frame_elem.keys():
+                        tsf=key
+                try :				
+                        Monitor[tsf].append[monitor_elem]
+                except:
+                        pass 
+		parse_mgmt_beacon_frame(frame,radiotap_len,frame_elem)
 		mgmt_index=mgmt_index+MGMT_BEACON_STRUCT_SIZE
 	mgmt_index=0
 	for idx in xrange(0,len(common_mgmt_frames)-MGMT_COMMON_STRUCT_SIZE ,MGMT_COMMON_STRUCT_SIZE ):	
@@ -196,7 +220,14 @@ for data_f_name in data_fs :
 			sys.exit(1)
 
 		parse_radiotap(frame,radiotap_len,present_flag,offset,monitor_elem,frame_elem)
-		parse_mgmt_common_frame(frame,radiotap_len)
+                tsf= 0
+                for key in frame_elem.keys():
+                        tsf=key
+                try :
+                        Monitor[tsf].append[monitor_elem]
+                except:
+                        pass                 
+		parse_mgmt_common_frame(frame,radiotap_len,frame_elem)
 		mgmt_index=mgmt_index+MGMT_COMMON_STRUCT_SIZE
 
 	mgmt_index=0
@@ -211,10 +242,18 @@ for data_f_name in data_fs :
 			sys.exit(1)
 
 		parse_radiotap(frame,radiotap_len,present_flag,offset,monitor_elem,frame_elem)
-		parse_mgmt_err_frame(frame,radiotap_len)
+                tsf= 0
+                for key in frame_elem.keys():
+                        tsf=key
+                try :
+                        Monitor[tsf].append[monitor_elem]
+                except:
+                        pass 
+
+		parse_mgmt_err_frame(frame,radiotap_len,frame_elem)
 		mgmt_index= mgmt_index+MGMT_ERR_STRUCT_SIZE
-	'''
-	'''
+	
+	
 #The following code block parses the ctrl files 
 	val_ctrl_missed= struct.unpack('I',correct_ctrl_frames_missed)
 	val_err_ctrl_missed= struct.unpack('I',err_ctrl_frames_missed)
@@ -231,7 +270,15 @@ for data_f_name in data_fs :
 			print "the radiotap header is not correct "		
 			sys.exit(1)
 		parse_radiotap(frame,radiotap_len,present_flag,offset,monitor_elem,frame_elem)
-		parse_ctrl_frame(frame,radiotap_len)
+                tsf= 0
+                for key in frame_elem.keys():
+                        tsf=key
+                try :
+                        Monitor[tsf].append[monitor_elem]
+                except:
+                        pass 
+
+		parse_ctrl_frame(frame,radiotap_len,frame_elem)
 
 	ctrl_index=0
 	for idx in xrange(0,len(err_ctrl_frames)-CTRL_ERR_STRUCT_SIZE,CTRL_ERR_STRUCT_SIZE):	
@@ -245,5 +292,12 @@ for data_f_name in data_fs :
 			sys.exit(1)
 
 		parse_radiotap(frame,radiotap_len,present_flag,offset,monitor_elem,frame_elem)
-		parse_ctrl_err_frame(frame,radiotap_len)
-		'''
+                tsf= 0
+                for key in frame_elem.keys():
+                        tsf=key
+                try :
+                        Monitor[tsf].append[monitor_elem]
+                except:
+                        pass 
+		parse_ctrl_err_frame(frame,radiotap_len,frame_elem)
+		

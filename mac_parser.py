@@ -6,12 +6,8 @@ import struct
 from header import *
 from collections import defaultdict
 Station=defaultdict(list)
-Monitor_recv=defaultdict(list)
-Monitor_xmit=defaultdict(list)
+Monitor=defaultdict(list)
 Access_Point=defaultdict(list)
-Access_Point['timestamp'].append(1)
-Monitor_xmit['timestamp'].append(1)
-Monitor_recv['timestamp'].append(1)
 
 ieee80211= radiotap_rx()
 mcs_rate=mcs_flags()
@@ -19,7 +15,7 @@ channel_flags=channel_flag()
 flags=flag()	 
 
 def print_hex_mac(src_mac_address):
-        return "%x:%x:%x:%x:%x:%x" % struct.unpack("BBBBBB",src_mac_address)
+        return "%02x:%02x:%02x:%02x:%02x:%02x" % struct.unpack("BBBBBB",src_mac_address)
 
 
 def print_chaninfo(flags) :
@@ -32,7 +28,6 @@ def print_chaninfo(flags) :
                         return" 11a/5Mhz"
                 else:
                         return " 11a"
-        
         if (IS_CHAN_ANYG(flags)) :
                 if (flags & IEEE80211_CHAN_HALF):
                         return " 11g/10Mhz"
@@ -50,13 +45,9 @@ def print_chaninfo(flags) :
                 return " ht/40-"
         elif (flags & IEEE80211_CHAN_HT40U):
                 return " ht/40+"
+        print "should be done now "
 
-
-
-
-
-
-def parse_radiotap(frame,radiotap_len,present_flag,offset,frame_elem,monitor_elem):	
+def parse_radiotap(frame,radiotap_len,present_flag,offset,monitor_elem,frame_elem):	
 	if radiotap_len == 58 :
 		actual_rate =0 # this is filled at the end of the parse with ht/non ht rate
 		radiotap_data_retries = 0 
@@ -77,8 +68,6 @@ def parse_radiotap(frame,radiotap_len,present_flag,offset,frame_elem,monitor_ele
 				rad_flag_elem.append(0)
 			if radiotap_flags & flags.IEEE80211_RADIOTAP_F_BADFCS :
 				rad_flag_elem.append(1)
-				print "BAD FCS " 
-				sys.exit(1)
 			else :
 				rad_flag_elem.append(0)
 			if radiotap_flags & flags.IEEE80211_RADIOTAP_F_FRAG:
@@ -107,7 +96,7 @@ def parse_radiotap(frame,radiotap_len,present_flag,offset,frame_elem,monitor_ele
 			frame_elem[tsf].append(radiotap_freq)
                         protocol=print_chaninfo(radiotap_fhss)
 			frame_elem[tsf].append(protocol)
-			offset += 2 
+			offset += 2
 		if present_flag & 1<<ieee80211.IEEE80211_RADIOTAP_DBM_ANTSIGNAL :
 			#print "dbm signal offset[22] " ,offset
 			radiotap_signal=list(struct.unpack('B',frame[offset]))[0]
@@ -185,9 +174,9 @@ def parse_radiotap(frame,radiotap_len,present_flag,offset,frame_elem,monitor_ele
                                     and ht_rates[mcs][bandwidth][gi_length] != 0.0) :
                                 if (radiotap_rate ==0) :
                                         actual_rate= ht_rates[mcs][bandwidth][gi_length]
-                                        frame_elem[tsf].append(actual_rate)
-                        #print "Data Rate in rx :",  ht_rates[mcs][bandwidth][gi_length]
-			
+
+                frame_elem[tsf].append(actual_rate)
+                #print "Data Rate in rx :", actual_rate
 		homesaw_oui_1=list(struct.unpack('B',frame[offset]))[0]
 		offset +=1 
 		homesaw_oui_2=list(struct.unpack('B',frame[offset]))[0]
@@ -217,7 +206,7 @@ def parse_radiotap(frame,radiotap_len,present_flag,offset,frame_elem,monitor_ele
 			offset +=4
 		if present_flag & 1<<ieee80211.IEEE80211_RADIOTAP_CAPLEN :
 			radiotap_caplen=  list(struct.unpack('<H',frame[offset:offset+2]))[0]
-			frame_elem[tsf].append(radiotap_caplen)
+			frame_elem[tsf].append(radiotap_caplen-4) #subtracting the FCS len=4
 			offset +=2
 		if present_flag & 1<<ieee80211.IEEE80211_RADIOTAP_RSSI :
 			radiotap_rssi= list(struct.unpack('B',frame[offset]))[0]
@@ -242,6 +231,9 @@ def parse_radiotap(frame,radiotap_len,present_flag,offset,frame_elem,monitor_ele
 	elif radiotap_len == 42:
 		tsf=0
 		radiotap_rate =0
+                bandwidth= -1
+                gi_length=-1
+                mcs=-1
 		print "in TXPATH"
 		if present_flag & 1<<ieee80211.IEEE80211_RADIOTAP_TSFT :
 			tsf=list(struct.unpack('<Q',frame[offset:offset+8]))[0]
@@ -271,7 +263,6 @@ def parse_radiotap(frame,radiotap_len,present_flag,offset,frame_elem,monitor_ele
                         else :
                                 rad_txflags_elem.append(0)
 
-
 			if radiotap_tx_flags & flags.IEEE80211_RADIOTAP_F_TX_AGG:
 				print " TX AGGREGATE FRAME " 
 				sys.exit(1) 
@@ -284,6 +275,7 @@ def parse_radiotap(frame,radiotap_len,present_flag,offset,frame_elem,monitor_ele
 			radiotap_data_retries=list(struct.unpack('B',frame[offset]))[0]
 			#print "Data retries =",radiotap_data_retries 
 			offset +=1
+                        frame_elem[tsf].append(radiotap_data_retries)
 		if present_flag & 1<<ieee80211.IEEE80211_RADIOTAP_MCS :
 			mcs_known=list(struct.unpack('B',frame[offset]))[0]
 			offset += 1 
@@ -291,9 +283,7 @@ def parse_radiotap(frame,radiotap_len,present_flag,offset,frame_elem,monitor_ele
 			offset += 1 
 			mcs=list(struct.unpack('B',frame[offset]))[0]
 			offset += 1 
-			bandwidth=0
 			can_calculate_rate = 1 
-			gi_length=0
 			if (mcs_known & mcs_rate.IEEE80211_RADIOTAP_MCS_HAVE_BW) :
                            if ((mcs_flags & mcs_rate.IEEE80211_RADIOTAP_MCS_BW_MASK) \
                                        == mcs_rate.IEEE80211_RADIOTAP_MCS_BW_40):
@@ -320,16 +310,17 @@ def parse_radiotap(frame,radiotap_len,present_flag,offset,frame_elem,monitor_ele
                         if (can_calculate_rate and mcs <= mcs_rate.MAX_MCS_INDEX \
                                     and ht_rates[mcs][bandwidth][gi_length] != 0.0) :
                                 if (radiotap_rate ==0) :
+                                        print mcs, bandwidth, gi_length
                                         actual_rate= ht_rates[mcs][bandwidth][gi_length]
                                         frame_elem[tsf].append(actual_rate)
                                 else :
                                         print "should not be reaching here " 
-										
-                        print "Data Rate in tx :",  ht_rates[mcs][bandwidth][gi_length]
+                                        sys.exit(1)
+                       # print "Data Rate in tx :",  ht_rates[mcs][bandwidth][gi_length]
 
 		if present_flag & 1<<ieee80211.IEEE80211_RADIOTAP_TOTAL_TIME :
-			radiotap_rx_total_time=list(struct.unpack('<I',frame[offset:offset+4]))[0]
-			frame_elem[tsf].append(radiotap_rx_total_time)
+			radiotap_tx_total_time=list(struct.unpack('<I',frame[offset:offset+4]))[0]
+			frame_elem[tsf].append(radiotap_tx_total_time)
 			offset += 4
 		if present_flag & 1<<ieee80211.IEEE80211_RADIOTAP_CONTENTION_TIME :
 			radiotap_rx_contention_time=list(struct.unpack('<I',frame[offset:offset+4]))[0]
@@ -338,9 +329,18 @@ def parse_radiotap(frame,radiotap_len,present_flag,offset,frame_elem,monitor_ele
 			offset += 4
 		if present_flag & 1<<ieee80211.IEEE80211_RADIOTAP_RATES_TRIED : #10 max			
 			rates_tried =frame[offset:offset+10]
-			#for r_i in range (0,10):                        
-                        #	print "r_i" ,format(ord(rates_tried[r_i]))
+                        rad_rate_retries=[]
+                        if ord(rates_tried[1])>1 :
+                                rad_rate_retries.append([ht_rates[ord(rates_tried[0])][bandwidth][gi_length],ord(rates_tried[1])-1])
+			for r_i in range (2,10,2):
+                                if ord(rates_tried[r_i])>0 :
+                                        rad_rate_retries.append([ht_rates[ord(rates_tried[r_i])][bandwidth][gi_length],ord(rates_tried[r_i+1])])
 			offset +=10
+                        #rint "final rate retries array" ,rad_rate_retries
+                        #f len(rad_rate_retries):
+                        #       for i in range(0,10):
+                        #               print ord( rates_tried[i]),
+                        frame_elem[tsf].append(rad_rate_retries)
 		#print "Last elem=8 :", struct.unpack('B',frame[offset]) # last element location=39
 		if present_flag & 1<<ieee80211.IEEE80211_RADIOTAP_RADIOTAP_NAMESPACE :
 			pass
@@ -348,35 +348,39 @@ def parse_radiotap(frame,radiotap_len,present_flag,offset,frame_elem,monitor_ele
 			pass
 		if present_flag & 1<<ieee80211.IEEE80211_RADIOTAP_EXT :
 			pass			
-		print "after finishing the radiotap parser " 
-                print frame_elem
-                return frame_elem
-		            
+        return (frame_elem,monitor_elem)
+        
+
+
+
 def parse_mgmt_fc(frame_control):
+        def FC_SUBTYPE(fc) :
+                return (((fc) >> 4) & 0xF)
+
 	if FC_SUBTYPE(frame_control) ==   ST_BEACON :
-		print "BEACON"
+                return 1 
 	elif FC_SUBTYPE(frame_control) == ST_ASSOC_REQUEST :
-		print "ASS REQ"	
+                return 2
 	elif FC_SUBTYPE(frame_control) == ST_ASSOC_RESPONSE :
-		print "RES"
+                return 3
 	elif FC_SUBTYPE(frame_control) == ST_REASSOC_REQUEST :
-		print "REASS REQ"
+                return 4 
 	elif FC_SUBTYPE(frame_control) == ST_REASSOC_RESPONSE :
-		print "REASS RESP"
+                return 5
 	elif FC_SUBTYPE(frame_control) == ST_PROBE_REQUEST :
-		print "PROBE REQ"
+                return 6 
 	elif FC_SUBTYPE(frame_control) == ST_PROBE_RESPONSE :
-		print "PROBE RES"
+                return 7
 	elif FC_SUBTYPE(frame_control) == ST_DISASSOC :
-		print "DISS "
+                return 8 
 	elif FC_SUBTYPE(frame_control) == ST_ATIM :
-		print "ATIM "
+                return 9 
 	elif FC_SUBTYPE(frame_control) == ST_AUTH :
-		print "AUTH"
+                return 10
 	elif FC_SUBTYPE(frame_control) == ST_DEAUTH :
-		print " DEAUTH"
+                return 11
 	elif FC_SUBTYPE(frame_control) == ST_ACTION :
-		print "ACTION "
+                return 12
 
 
 
@@ -384,58 +388,81 @@ def parse_data_fc(fc,radiotap_len,frame_elem):
 	tsf= 0
 	for key in frame_elem.keys():
                 tsf=key
+	print "frame at start of parse data fc  " , frame_elem							
 	def FC_TO_DS(fc) :
 		return ((fc) & 0x0100)
 	def FC_FROM_DS(fc) :
 		return ((fc) & 0x0200)
 	if ( not(FC_TO_DS(fc)) and not(FC_FROM_DS(fc))) :
 #		ADDR2 , 1 
-		print "Fuckniog shit " 
+		print "Fuckning shit 1" 
+		print "frame is " , frame_elem
+		print "src is " ,frame_elem[tsf][11]
+		print "dest is " ,frame_elem[tsf][12]
 	elif ( not(FC_TO_DS(fc)) and  FC_FROM_DS(fc)) :
 #		ADDR3,2
-		print "this is the mac address to look for "
+		#print "this is the mac address to look for 2" 
+                #print frame_elem
+                #print "src is " ,frame_elem[tsf][6]
+                #print "dest is " ,frame_elem[tsf][6]
+                
 		if radiotap_len ==42 : 
-			Station[frame_elem[tsf][5]].append(tsf)
-                        Station[frame_elem[tsf][5]].append(frame_elem[tsf][0])
-                        Station[frame_elem[tsf][5]].append(frame_elem[tsf][1])
-                        Station[frame_elem[tsf][5]].append(frame_elem[tsf][2])
-                        Station[frame_elem[tsf][5]].append(frame_elem[tsf][3])
-                        Monitor[frame_elem[tsf][4]].append(tsf)
-                        print "the station data structure is  "
-                        print Station 
-                        print "the frame data structure is " 
-                        print frame_elem
-                        sys.exit(1)
+						 # 6th is the dest mac address of client connected
+						 Station[frame_elem[tsf][6]].append(tsf)
+						 Station[frame_elem[tsf][6]].append(frame_elem[tsf][0])
+						 Station[frame_elem[tsf][6]].append(frame_elem[tsf][1])
+						 Station[frame_elem[tsf][6]].append(frame_elem[tsf][2])
+						 Station[frame_elem[tsf][6]].append(frame_elem[tsf][3])
+
+
                 
 	elif (FC_TO_DS(fc) and not(FC_FROM_DS(fc))) :
+		for key in Station.keys():
+						if key == frame_elem[11]:
+										Station[frame_elem[tsf][12]].append(frame_elem[0])
+                                
 #		ADDR 2,3
-		print "fucking some other shit " 
-	elif (FC_TO_DS(fc) and (FC_FROM_DS(fc))) :
-#		ADDR4,3
-		print " fucking hte last shit on the code planet "
-
-
+		print "fucking some other shit 3" 
+                try : 
+                        print "src is " ,frame_elem[tsf][11]
+                        print "dest is " ,frame_elem[tsf][12]
+                except :
+                        print frame_elem
+                        for key in Station.keys():
+                                print "station is ",key
+                        sys.exit(1)
+	elif (FC_TO_DS(fc) and (FC_FROM_DS(fc))) :#		ADDR4,3		
+		print " fucking hte last shit on the code planet 4"
+		print frame_elem
+		print "src is " ,frame_elem[tsf][11]
+		print "dest is " ,frame_elem[tsf][12]
 
 def parse_ctrl_fc(frame_control):
-	if FC_SUBTYPE(frame_control) ==  CTRL_BAR  :
-		pass
+        def FC_SUBTYPE(fc) :
+                return (((fc) >> 4) & 0xF)
+
+	if FC_SUBTYPE(frame_control) ==  CTRL_BA  :
+                return 1
 	elif FC_SUBTYPE(frame_control) == CTRL_BA :
-		pass
+                return 2
 	elif FC_SUBTYPE(frame_control) == CTRL_PS_POLL :
-		pass
+                return 3
 	elif FC_SUBTYPE(frame_control) == CTRL_RTS :
-		pass
+                return 4
 	elif FC_SUBTYPE(frame_control) == CTRL_CTS :
-		pass
+                return 5
 	elif FC_SUBTYPE(frame_control) == CTRL_ACK :
-		pass
+                return 6
 	elif FC_SUBTYPE(frame_control) == CTRL_CF_END :
-		pass
+                return 7
 	elif FC_SUBTYPE(frame_control) == CTRL_END_ACK :
-		pass
+                return 8
 
 
 def parse_frame_control(frame_control,radiotap_len,frame_elem) :	
+	tsf= 0
+	for key in frame_elem.keys():
+                tsf=key
         def FC_MORE_FLAG(fc):
                 return ((fc) & 0x0400)
         def FC_RETRY(fc) :       
@@ -463,31 +490,39 @@ def parse_frame_control(frame_control,radiotap_len,frame_elem) :
 	if FC_TYPE(frame_control)==T_CTRL :
 		print "ctrl " 
 		parse_ctrl_fc(frame_control)
+        mac_flags=[]
 	if FC_WEP(frame_control):
-		pass
+                mac_flags.append(1)
+        else:
+                mac_flags.append(0)
 	if FC_RETRY(frame_control):
-		print "RETRY "
+                mac_flags.append(1)
+        else:
+                mac_flags.append(0)
 	if FC_ORDER(frame_control):
-		pass 
+                mac_flags.append(1)
+        else:
+                mac_flags.append(0)
 	if FC_POWER_MGMT(frame_control):
-		pass
+                mac_flags.append(1)
+        else:
+                mac_flags.append(0)
 	if FC_MORE_FLAG(frame_control):
-		pass
+                mac_flags.append(1)
+        else:
+                mac_flags.append(0)
 	if FC_MORE_DATA(frame_control):
-		pass
-
-def seqctl_frag_number(x) : 
-	return (x) & 0x00f		
-
-def seqctl_seq_number(x):
-	return 	(((x) & 0xfff0) >> 4 )
+                mac_flags.append(1)
+        else:
+                mac_flags.append(0)
+        frame_elem[tsf].append(mac_flags)
 
 
 def parse_data_frame(frame,radiotap_len,frame_elem):
 	#print "radiotap len =" , radiotap_len
 	tsf= 0
-	for key in frame_elem.keys():
-                tsf=key
+	for key in frame_elem:
+		tsf=key
 	offset = radiotap_len
 	pkt_len =list(struct.unpack('>I',frame[offset:offset+4]))[0]-FCS_LEN-radiotap_len
 	offset +=4
@@ -499,10 +534,7 @@ def parse_data_frame(frame,radiotap_len,frame_elem):
         dest = print_hex_mac(dest_mac_address)
         frame_elem[tsf].append(src)
         frame_elem[tsf].append(dest)
-        print frame_elem
-        print "before going to the frame control"        
 	frame_control= list(struct.unpack('>H',frame[offset:offset+2]))[0]
-	parse_frame_control(frame_control,radiotap_len,frame_elem)
 	offset +=2
 	sequence_control_bytes = list(struct.unpack('>H',frame[offset:offset+2]))[0]
 	frame_fragment_number=seqctl_frag_number(sequence_control_bytes)
@@ -510,9 +542,13 @@ def parse_data_frame(frame,radiotap_len,frame_elem):
 	offset +=2
         frame_elem[tsf].append(frame_sequence_number)
         frame_elem[tsf].append(frame_fragment_number)
+	parse_frame_control(frame_control,radiotap_len,frame_elem)
+        frame_elem[tsf].append(pkt_len)
 
 def parse_err_data_frame(frame,radiotap_len,frame_elem):
-        tsf=0
+	tsf=0
+	for key in frame_elem:
+		tsf=key
 	offset = radiotap_len
 	pkt_len =list(struct.unpack('>I',frame[offset:offset+4]))[0]-FCS_LEN-radiotap_len
 	offset +=4
@@ -523,20 +559,20 @@ def parse_err_data_frame(frame,radiotap_len,frame_elem):
                     & int(list(struct.unpack('B',src_mac_address[5]))[0]):
 		sys.exit(1)
 	dest_mac_address= frame[offset:offset+6]
-#	print_hex_mac(src_mac_address,"src mac")	
-#	print_hex_mac(dest_mac_address,"dest mac")
 	offset +=6
+
+	src=print_hex_mac(src_mac_address)	
+	dest=print_hex_mac(dest_mac_address)
 	
 	if int(list(struct.unpack('B',dest_mac_address[3]))[0]) !=0 &  \
                     int(list(struct.unpack('B',dest_mac_address[4]))[0]) != 0 & \
                     int(list(struct.unpack('B',dest_mac_address[5]))[0]) !=0 :
 		print "this should not happen with all the frames btw ..."
 		sys.exit(1) 
-        frame_elem[tsf].append(src_mac_address)
-        frame_elem[tsf].append(dest_mac_address)
+        frame_elem[tsf].append(src)
+        frame_elem[tsf].append(dest)
 
 	frame_control= list(struct.unpack('>H',frame[offset:offset+2]))[0]
-	parse_frame_control(frame_control,radiotap_len,frame_elem)
 	offset +=2	
 	sequence_control_bytes = list(struct.unpack('>H',frame[offset:offset+2]))[0]
 	frame_fragment_number=seqctl_frag_number(sequence_control_bytes)
@@ -544,10 +580,15 @@ def parse_err_data_frame(frame,radiotap_len,frame_elem):
 
         frame_elem[tsf].append(frame_sequence_number)
         frame_elem[tsf].append(frame_fragment_number)
-	
+        print frame_elem
+        print "before going to the frame control"        
+        parse_frame_control(frame_control,radiotap_len,frame_elem)
+        frame_elem[tsf].append(pkt_len)
 
-def parse_mgmt_beacon_frame(frame,radiotap_len):
+def parse_mgmt_beacon_frame(frame,radiotap_len,frame_elem):
         tsf=0
+	for key in frame_elem:
+		tsf=key
 	def CAPABILITY_ESS(cap)  :
 		((cap) & 0x0001)
 
@@ -558,11 +599,10 @@ def parse_mgmt_beacon_frame(frame,radiotap_len):
 	pkt_len =list(struct.unpack('>I',frame[offset:offset+4]))[0]-FCS_LEN-radiotap_len
 	offset +=4
 	src_mac_address= frame[offset:offset+6]	
-	print_hex_mac(src_mac_address,"src mac address")
+	src=print_hex_mac(src_mac_address)
 	offset +=6
 	frame_control= list(struct.unpack('>H',frame[offset:offset+2]))[0]
-        offset +=2	
-	parse_frame_control(frame_control,radiotap_len,frame_elem)
+	offset +=2	
 	sequence_control_bytes = list(struct.unpack('>H',frame[offset:offset+2]))[0]
 	frame_fragment_number=seqctl_frag_number(sequence_control_bytes)
 	frame_sequence_number =seqctl_seq_number(sequence_control_bytes )
@@ -573,54 +613,59 @@ def parse_mgmt_beacon_frame(frame,radiotap_len):
         cap_ess=-1
         private=-1
 	if CAPABILITY_ESS(cap_info):
-		print "ESS"
-                cap_ess=1
+                cap_ess=1 #print "ESS"
 	else :
-                cap_ess=0
-		print "IBSS" 
+                cap_ess=0 #print "IBSS" 
 
 	if CAPABILITY_PRIVACY(cap_info):
-		print "PRIVACY"
-                private=1
+                private=1 # print "PRIVACY"
 	else:
-		print "NOT PRIVATE"
-                private=0
+                private=0 # print "NOT PRIVATE"
 
 	if (ht_support==1):
 		print "I have a fuckign n ap" 
 	print "final offset = ", offset, "offset-radiotap =", offset-radiotap_len
         frame_elem[tsf].append(frame_sequence_number)
-        frame_elem[tsf].append(frame_fragment_number)
-        frame_elem[tsf].append(ht_support)
-        frame_elem[tsf].append(cap_ess)
-        frame_elem[tsf].append(private)
+	frame_elem[tsf].append(frame_fragment_number)
+	frame_elem[tsf].append(ht_support)
+	frame_elem[tsf].append(cap_ess)
+	frame_elem[tsf].append(private)
+	parse_frame_control(frame_control,radiotap_len,frame_elem)
+	print "mgmt frame ",frame_elem 
 
 def parse_mgmt_common_frame(frame,radiotap_len,frame_elem):
+        tsf=0
+	for key in frame_elem:
+		tsf=key
 	offset = radiotap_len
 	pkt_len =list(struct.unpack('>I',frame[offset:offset+4]))[0]-FCS_LEN-radiotap_len 
 	offset +=4
 	src_mac_address= frame[offset:offset+6]	
-	print_hex_mac(src_mac_address, "src mac ")
+	src=print_hex_mac(src_mac_address)
 	offset +=6
 	frame_control= list(struct.unpack('>H',frame[offset:offset+2]))[0]
 	offset +=2	
-	parse_frame_control(frame_control,radiotap_len,frame_elem)
 	sequence_control_bytes = list(struct.unpack('>H',frame[offset:offset+2]))[0]
+        frame_elem[tsf].append(src)
 	frame_fragment_number=seqctl_frag_number(sequence_control_bytes)
 	frame_sequence_number =seqctl_seq_number(sequence_control_bytes )
 	offset +=2 
-        frame_elem[tsf].append(frame_sequence_number)
-        frame_elem[tsf].append(frame_fragment_number)
+	frame_elem[tsf].append(frame_sequence_number)
+	frame_elem[tsf].append(frame_fragment_number)
+	parse_frame_control(frame_control,radiotap_len,frame_elem)
+	frame_elem[tsf].append(pkt_len)
 
 def parse_mgmt_err_frame(frame,radiotap_len,frame_elem):
+        tsf=0
+	for key in frame_elem:
+		tsf=key
 	offset = radiotap_len
 	pkt_len =list(struct.unpack('>I',frame[offset:offset+4]))[0]-FCS_LEN-radiotap_len
 	offset +=4
 	src_mac_address= frame[offset:offset+6]	
-	print_hex_mac(src_mac_address,"src mac address" )
+	src=print_hex_mac(src_mac_address )
 	offset +=6
 	frame_control= list(struct.unpack('>H',frame[offset:offset+2]))[0]
-	parse_frame_control(frame_control,radiotap_len,frame_elem)
 	offset +=2	
 	sequence_control_bytes = list(struct.unpack('>H',frame[offset:offset+2]))[0]
 	frame_fragment_number=seqctl_frag_number(sequence_control_bytes)
@@ -628,28 +673,37 @@ def parse_mgmt_err_frame(frame,radiotap_len,frame_elem):
 	offset +=2 
         frame_elem[tsf].append(frame_sequence_number)
         frame_elem[tsf].append(frame_fragment_number)
-
-
+	parse_frame_control(frame_control,radiotap_len,frame_elem)
+        frame_elem[tsf].append(pkt_len)
 
 def parse_ctrl_frame(frame,radiotap_len,frame_elem):
+        tsf=0
+	for key in frame_elem:
+		tsf=key
 	offset = radiotap_len
 	pkt_len =list(struct.unpack('>I',frame[offset:offset+4]))[0]-FCS_LEN-radiotap_len
 	offset +=4
 	src_mac_address= frame[offset:offset+6]	 
-	print_hex_mac(src_mac_address, "src mac address")
+	src= print_hex_mac(src_mac_address)
 	offset +=6
 	frame_control= list(struct.unpack('>H',frame[offset:offset+2]))[0]
 	parse_frame_control(frame_control,radiotap_len,frame_elem)
 	offset +=2	
-
+        frame_elem[tsf].append(src)
+        frame_elem[tsf].append(pkt_len)
 
 def parse_ctrl_err_frame(frame,radiotap_len,frame_elem):
+        tsf=0
+	for key in frame_elem:
+		tsf=key
 	offset = radiotap_len
 	pkt_len =list(struct.unpack('>I',frame[offset:offset+4]))[0]-FCS_LEN-radiotap_len
 	offset +=4
 	src_mac_address= frame[offset:offset+6]		      
-	print_hex_mac(src_mac_address,"src_mac")
+	src=print_hex_mac(src_mac_address)
 	offset +=6
 	frame_control= list(struct.unpack('>H',frame[offset:offset+2]))[0]
 	parse_frame_control(frame_control,radiotap_len,frame_elem)
 	offset +=2	
+        frame_elem[tsf].append(src)
+        frame_elem[tsf].append(pkt_len)
