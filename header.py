@@ -113,7 +113,10 @@ class mcs_flags :
 	IEEE80211_RADIOTAP_MCS_HAVE_BW  =  0x01
 	IEEE80211_RADIOTAP_MCS_HAVE_MCS =  0x02
 	IEEE80211_RADIOTAP_MCS_HAVE_GI =  0x04
-
+	IEEE80211_RADIOTAP_MCS_BW_MASK = 0x03
+	IEEE80211_RADIOTAP_MCS_BW_40  =  1
+	IEEE80211_RADIOTAP_MCS_SGI   = 0x04
+	MAX_MCS_INDEX = 76
 
 class flag:
 	 IEEE80211_RADIOTAP_F_FCS = 0x10  # frame includes FCS 
@@ -125,6 +128,57 @@ class flag:
 	 IEEE80211_RADIOTAP_F_TX_AGG= 0x10  # don't expect an ack 
 	 IEEE80211_RADIOTAP_F_BADFCS= 0x40  # bad FCS 
 	 IEEE80211_RADIOTAP_F_RX_BADPLCP = 0x0002 #bad plcp in rx_flags 
+	 IEEE80211_RADIOTAP_F_SHORTPRE =  0x02  
+	 IEEE80211_RADIOTAP_F_CFP      =  0x01  
+	 IEEE80211_RADIOTAP_F_WEP      =  0x04  
+	 IEEE80211_RADIOTAP_F_FRAG     =  0x08  
+
+
+IEEE80211_CHAN_TURBO   = 0x00010 # Turbo channel */
+IEEE80211_CHAN_CCK     = 0x00020 # CCK channel */
+IEEE80211_CHAN_OFDM    = 0x00040 # OFDM channel */
+IEEE80211_CHAN_2GHZ    = 0x00080 # 2 GHz spectrum channel. */
+IEEE80211_CHAN_5GHZ    = 0x00100 # 5 GHz spectrum channel */
+IEEE80211_CHAN_PASSIVE = 0x00200 # Only passive scan allowed */
+IEEE80211_CHAN_DYN     = 0x00400 # Dynamic CCK-OFDM channel */
+IEEE80211_CHAN_GFSK    = 0x00800 # GFSK channel (FHSS PHY) */
+IEEE80211_CHAN_GSM     = 0x01000 # 900 MHz spectrum channel */
+IEEE80211_CHAN_STURBO  = 0x02000 # 11a static turbo channel only */
+IEEE80211_CHAN_HALF    = 0x04000 # Half rate channel */
+IEEE80211_CHAN_QUARTER = 0x08000 # Quarter rate channel */
+IEEE80211_CHAN_HT20    = 0x10000 # HT 20 channel */
+IEEE80211_CHAN_HT40U   = 0x20000 # HT 40 channel w/ ext above */
+IEEE80211_CHAN_HT40D   = 0x40000 # HT 40 channel w/ ext below */
+
+
+
+IEEE80211_CHAN_FHSS = (IEEE80211_CHAN_2GHZ | IEEE80211_CHAN_GFSK)
+IEEE80211_CHAN_A =   (IEEE80211_CHAN_5GHZ | IEEE80211_CHAN_OFDM)
+IEEE80211_CHAN_B =    (IEEE80211_CHAN_2GHZ | IEEE80211_CHAN_CCK)
+IEEE80211_CHAN_PUREG = (IEEE80211_CHAN_2GHZ | IEEE80211_CHAN_OFDM)
+IEEE80211_CHAN_G =   (IEEE80211_CHAN_2GHZ | IEEE80211_CHAN_DYN)
+
+def IS_CHAN_FHSS(flags) :
+        print ((flags & IEEE80211_CHAN_FHSS) == IEEE80211_CHAN_FHSS)
+        return ((flags & IEEE80211_CHAN_FHSS) == IEEE80211_CHAN_FHSS)
+def IS_CHAN_A(flags) :
+        return ((flags & IEEE80211_CHAN_A) == IEEE80211_CHAN_A)
+def IS_CHAN_B(flags) :
+        return ((flags & IEEE80211_CHAN_B) == IEEE80211_CHAN_B)
+def IS_CHAN_PUREG(flags) :
+        return ((flags & IEEE80211_CHAN_PUREG) == IEEE80211_CHAN_PUREG)
+def IS_CHAN_G(flags) :
+        return ((flags & IEEE80211_CHAN_G) == IEEE80211_CHAN_G)
+def IS_CHAN_ANYG(flags) :
+        return (IS_CHAN_PUREG(flags) or IS_CHAN_G(flags))
+        
+def seqctl_frag_number(x) : 
+	return (x) & 0x00f		
+
+def seqctl_seq_number(x):
+	return 	(((x) & 0xfff0) >> 4 )
+
+
 
 ht_rates = [
 
