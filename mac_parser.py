@@ -21,31 +21,31 @@ def print_hex_mac(src_mac_address):
 
 def print_chaninfo(flags) :	
         if (IS_CHAN_FHSS(flags)) :
-                return " FHSS"
+                return "FHSS"
         if (IS_CHAN_A(flags)) :
                 if (flags & IEEE80211_CHAN_HALF) :
-                        return " 11a/10Mhz"
+                        return "11a/10Mhz"
                 elif (flags & IEEE80211_CHAN_QUARTER) :
-                        return" 11a/5Mhz"
+                        return"11a/5Mhz"
                 else:
-                        return " 11a"
+                        return "11a"
         if (IS_CHAN_ANYG(flags)) :
                 if (flags & IEEE80211_CHAN_HALF):
-                        return " 11g/10Mhz"
+                        return  "11g/10Mhz"
                 elif (flags & IEEE80211_CHAN_QUARTER) :
-                        return " 11g/5Mhz"
+                        return "11g/5Mhz"
                 else :
-                        return " 11g"
+                        return "11g"
         elif (IS_CHAN_B(flags)):
-                return " 11b"
+                return "11b"
         if (flags & IEEE80211_CHAN_TURBO):
-                return " Turbo"
+                return "Turbo"
         if (flags & IEEE80211_CHAN_HT20):
-                return " ht/20"
+                return "ht/20"
         elif (flags & IEEE80211_CHAN_HT40D):
-                return " ht/40-"
+                return "ht/40-"
         elif (flags & IEEE80211_CHAN_HT40U):
-                return " ht/40+"
+                return "ht/40+"
 
 def parse_radiotap(frame,radiotap_len,present_flag,offset,monitor_elem,frame_elem):	
 	if radiotap_len == 58 :
@@ -99,12 +99,12 @@ def parse_radiotap(frame,radiotap_len,present_flag,offset,monitor_elem,frame_ele
 			offset += 2
 		if present_flag & 1<<ieee80211.IEEE80211_RADIOTAP_DBM_ANTSIGNAL :
 			#print "dbm signal offset[22] " ,offset
-			radiotap_signal=list(struct.unpack('B',frame[offset]))[0]
+			radiotap_signal=list(struct.unpack('b',frame[offset]))[0]
 			#print "signal with sign" ,struct.unpack('b',frame[offset])
 			frame_elem[tsf].append(radiotap_signal)
 			offset += 1
 		if present_flag & 1<<ieee80211.IEEE80211_RADIOTAP_DBM_ANTNOISE : 
-			radiotap_noise=list(struct.unpack('B',frame[offset]))[0]#23
+			radiotap_noise=list(struct.unpack('b',frame[offset]))[0]#23
 			frame_elem[tsf].append(radiotap_noise)
 			monitor_elem[tsf].append(radiotap_noise)
 			#print "noise with sign " ,radiotap_noise
