@@ -178,12 +178,12 @@ for data_f_name in data_fs :
                 rate.append(frame_elem[tsf][7])
                 a= frame_elem[tsf][11].split(':')
                 if  not (a[0] =='ff' and a[1] =='ff' and a[2] =='ff' ):
-                    if not (a[0] =='33' and a[1] =='33' and a[2] =='00' ) :
+                    if not (a[0] =='33' and a[1] =='33'  ) :
                         device_macs.add(frame_elem[tsf][11])
                         device_local_map.add(frame_elem[tsf][11])            
                 a= frame_elem[tsf][12].split(':')
                 if  not (a[0] =='ff' and a[1] =='ff' and a[2] =='ff' ):
-                    if not (a[0] =='33' and a[1] =='33' and a[2] =='00' ) :
+                    if not (a[0] =='33' and a[1] =='33'  ) :
                         device_macs.add(frame_elem[tsf][12])
                         device_local_map.add(frame_elem[tsf][12])
             elif radiotap_len ==42 :
@@ -227,7 +227,7 @@ for data_f_name in data_fs :
             if radiotap_len== 58:
                 a= frame_elem[tsf][11].split(':')            
                 if  not (a[0] =='ff' and a[1] =='ff' and a[2] =='ff' ) :
-                    if not (a[0] =='33' and a[1] =='33' and a[2] =='00' ) :
+                    if not (a[0] =='33' and a[1] =='33' ) :
                         ap_macs.add(frame_elem[tsf][11])
                         ap_local_map.add(frame_elem[tsf][11])
         else :
